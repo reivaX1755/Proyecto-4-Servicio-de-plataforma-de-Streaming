@@ -2,30 +2,135 @@ import streamlit as st
 import base64
 import os
 import re
+import csv
+from pathlib import Path
+from datetime import date, datetime
 
 
-def get_base64_of_bin_file(bin_file):
+# ─────────────────────────────────────────────────────────────────────────────
+#  HELPERS
+# ─────────────────────────────────────────────────────────────────────────────
+
+GENRES = [
+    "Comedy", "Drama", "Romance", "Crime", "Action", "Thriller", "Documentary",
+    "Adventure", "Science Fiction", "Animation", "Family", "Mystery", "Horror",
+    "Fantasy", "War", "Music", "Western", "History", "TV Movie",
+]
+
+
+def get_base64_of_bin_file(bin_file: str) -> str:
     with open(bin_file, "rb") as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
+        return base64.b64encode(f.read()).decode()
 
+
+def _csv_path() -> Path:
+    return Path(__file__).resolve().parents[2] / "data" / "users.csv"
+
+
+def _load_users() -> list[dict]:
+    path = _csv_path()
+    if not path.exists():
+        return []
+    try:
+        with open(path, "r", encoding="utf-8-sig", newline="") as f:
+            return list(csv.DictReader(f))
+    except Exception:
+        return []
+
+
+def _username_or_email_exists(username: str, email: str) -> tuple[bool, bool]:
+    users = _load_users()
+    username_l = username.strip().lower()
+    email_l = email.strip().lower()
+    taken_user = any((u.get("username") or "").strip().lower() == username_l for u in users)
+    taken_email = any((u.get("email") or "").strip().lower() == email_l for u in users)
+    return taken_user, taken_email
+
+
+def _next_user_id() -> int:
+    users = _load_users()
+    ids = []
+    for u in users:
+        try:
+            ids.append(int(u.get("user_id", 0)))
+        except (ValueError, TypeError):
+            pass
+    return max(ids) + 1 if ids else 1
+
+
+def _save_user(new_user: dict) -> bool:
+    path = _csv_path()
+    fieldnames = [
+        "user_id", "username", "email", "password",
+        "gender", "age", "favorite_genres", "created_at"
+    ]
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    file_exists = path.exists()
+
+    try:
+        with open(path, "a", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            if not file_exists or path.stat().st_size == 0:
+                writer.writeheader()
+            writer.writerow(new_user)
+        return True
+    except Exception:
+        return False
+
+
+def _valid_email(email: str) -> bool:
+    return bool(re.match(r"^[\w\.\+\-]+@[\w\-]+\.[a-zA-Z]{2,}$", email.strip()))
+
+
+def _password_strength(password: str):
+    EMPTY, RED, ORANGE, YELLOW, GREEN = "#1e293b", "#ef4444", "#f97316", "#eab308", "#22c55e"
+    if not password:
+        return 0, "", [EMPTY] * 4
+
+    score = sum([
+        len(password) >= 8,
+        bool(re.search(r"[A-Z]", password)),
+        bool(re.search(r"[0-9]", password)),
+        bool(re.search(r"[^A-Za-z0-9]", password)),
+    ])
+
+    level = max(1, score)
+    palettes = {
+        1: ("Débil",   [RED,    EMPTY,  EMPTY,  EMPTY]),
+        2: ("Regular", [ORANGE, ORANGE, EMPTY,  EMPTY]),
+        3: ("Buena",   [YELLOW, YELLOW, YELLOW, EMPTY]),
+        4: ("Fuerte",  [GREEN,  GREEN,  GREEN,  GREEN]),
+    }
+    label, colors = palettes[level]
+    return level, label, colors
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  MAIN FUNCTION
+# ─────────────────────────────────────────────────────────────────────────────
 
 def show_register():
-    """
-    Pantalla de registro para StreamVortex.
-    Diseño coherente con show_login: glassmorphism oscuro, gradiente indigo-púrpura,
-    tipografía Outfit, fondo con imagen + overlay.
-    """
+    # Si ya está logueado, ir al dashboard
+    if st.session_state.get("logged_in"):
+        st.query_params["page"] = "dashboard"
+        st.rerun()
+        return
 
-    # ── 1. Fondo ──────────────────────────────────────────────────────────────
-    bg_img_path = os.path.join("assets", "fondo-login.png")
+    # ── Background ────────────────────────────────────────────────────────────
     bin_str = ""
     try:
-        bin_str = get_base64_of_bin_file(bg_img_path)
+        bin_str = get_base64_of_bin_file(os.path.join("assets", "fondo-login.png"))
     except Exception:
-        pass  # Fallback to gradient if file is missing
+        pass
 
-    # ── 2. CSS ────────────────────────────────────────────────────────────────
+    logo_str = ""
+    try:
+        logo_str = get_base64_of_bin_file(os.path.join("assets", "logo-streaming.png"))
+    except Exception:
+        pass
+
+    # ── CSS ───────────────────────────────────────────────────────────────────
     st.markdown(
         f"""
         <style>
@@ -33,55 +138,93 @@ def show_register():
 
         :root {{
             --primary-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-            --background-dark: #0f172a;
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-bg: rgba(30, 41, 59, 0.78);
+            --glass-border: rgba(255, 255, 255, 0.12);
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
+            --accent: #818cf8;
+            --input-bg: rgba(15, 23, 42, 0.82);
+            --error-bg: rgba(127, 29, 29, 0.92);
+            --success-bg: rgba(20, 83, 45, 0.92);
         }}
 
         .stApp {{
-            background: linear-gradient(rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.6)),
+            background: linear-gradient(rgba(15,23,42,0.62), rgba(15,23,42,0.62)),
                         url("data:image/png;base64,{bin_str}");
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
             font-family: 'Outfit', sans-serif;
-            overflow: hidden;
         }}
 
         .main .block-container {{
             max-width: 100% !important;
-            padding: 0 !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
+            padding: 2vh 0 6vh 0 !important;
         }}
 
-        .register-header h1 {{
-            font-size: 4.5vh;
-            font-weight: 700;
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.5vh;
+        div[data-testid="stForm"] {{
+            background: var(--glass-bg) !important;
+            backdrop-filter: blur(22px) !important;
+            -webkit-backdrop-filter: blur(22px) !important;
+            border-radius: 2.4vh !important;
+            border: 1px solid var(--glass-border) !important;
+            padding: 4.5vh 3.2vw 5.5vh 3.2vw !important;
+            box-shadow: 0 4vh 8vh -2vh rgba(0,0,0,0.72) !important;
+            width: 52vw !important;
+            min-width: 480px;
+            max-width: 780px;
+            margin: auto;
         }}
 
-        .register-header p {{
-            color: var(--text-muted);
-            font-size: 1.8vh;
-            margin-bottom: 3vh;
+        div[data-testid="stForm"] > div {{ border: none !important; }}
+
+        div[data-baseweb="input"],
+        div[data-baseweb="select"] > div,
+        div[data-baseweb="textarea"] {{
+            background-color: var(--input-bg) !important;
+            border-radius: 0.9vh !important;
+            border: 1px solid var(--glass-border) !important;
+            transition: border-color 0.2s;
         }}
 
-        div[data-baseweb="input"] {{
-            background-color: rgba(15, 23, 42, 0.8) !important;
-            border-radius: 1vh !important;
-            border: 0.1vh solid var(--glass-border) !important;
+        div[data-baseweb="input"]:focus-within,
+        div[data-baseweb="select"] > div:focus-within {{
+            border-color: #6366f1 !important;
         }}
 
-        input {{
+        input, textarea {{
             color: var(--text-main) !important;
             font-family: 'Outfit', sans-serif !important;
+        }}
+
+        span[data-baseweb="tag"] {{
+            background: linear-gradient(135deg, rgba(99,102,241,0.35), rgba(168,85,247,0.35)) !important;
+            border: 1px solid rgba(129,140,248,0.4) !important;
+            border-radius: 999px !important;
+            color: #c7d2fe !important;
+            font-size: 1.25vh !important;
+            padding: 0.2vh 0.8vw !important;
+        }}
+
+        div[data-baseweb="datepicker"] input {{
+            color: var(--text-main) !important;
+        }}
+
+        li[role="option"] {{
+            background: #1e293b !important;
+            color: var(--text-main) !important;
+        }}
+        li[role="option"]:hover {{
+            background: rgba(99,102,241,0.25) !important;
+        }}
+
+        label, .stSelectbox label, .stMultiSelect label,
+        .stDateInput label, .stRadio label p {{
+            color: var(--text-muted) !important;
+            font-family: 'Outfit', sans-serif !important;
+            font-size: 1.4vh !important;
+            font-weight: 500 !important;
+            letter-spacing: 0.04em !important;
         }}
 
         .stButton button {{
@@ -89,237 +232,249 @@ def show_register():
             background: var(--primary-gradient) !important;
             color: white !important;
             border: none !important;
-            padding: 1.5vh 1.5vw !important;
-            border-radius: 1vh !important;
+            padding: 1.4vh 1.5vw !important;
+            border-radius: 0.9vh !important;
             font-weight: 600 !important;
-            transition: all 0.3s ease !important;
-            margin-top: 2vh;
+            font-family: 'Outfit', sans-serif !important;
+            font-size: 1.6vh !important;
+            letter-spacing: 0.04em !important;
+            transition: all 0.25s ease !important;
+            margin-top: 1vh;
         }}
 
         .stButton button:hover {{
-            transform: translateY(-0.2vh);
-            box-shadow: 0 1vh 2vh -0.5vh rgba(99, 102, 241, 0.5);
+            transform: translateY(-2px) !important;
+            box-shadow: 0 1.2vh 2.5vh -0.5vh rgba(99,102,241,0.55) !important;
         }}
 
-        #MainMenu, footer, header {{
-            visibility: hidden;
+        .section-label {{
+            color: var(--accent);
+            font-size: 1.15vh;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            margin: 2.8vh 0 1.2vh 0;
+            display: flex;
+            align-items: center;
+            gap: 0.6vw;
         }}
 
-        div[data-testid="stForm"] {{
-            background: rgba(30, 41, 59, 0.75) !important;
-            backdrop-filter: blur(2vh) !important;
-            border-radius: 3vh !important;
-            border: 0.2vh solid rgba(255, 255, 255, 0.15) !important;
-            padding: 5vh 3vw 6vh 3vw !important;
-            box-shadow: 0 4vh 7vh -2vh rgba(0, 0, 0, 0.7) !important;
-            width: 38vw !important;
-            min-width: 380px;
-            margin: auto;
+        .section-label::after {{
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(129,140,248,0.35), transparent);
         }}
 
-        div.stTextInput {{
-            margin-bottom: -1vh !important;
-        }}
-
-        div[data-testid="stForm"] > div {{
-            border: none !important;
-        }}
-
-        .strength-bar-container {{
+        .strength-wrap {{
             display: flex;
             gap: 0.4vw;
-            margin-top: 0.8vh;
-            margin-bottom: 1vh;
+            margin: 0.6vh 0;
         }}
 
-        .strength-bar {{
+        .sbar {{
             flex: 1;
-            height: 0.4vh;
+            height: 3px;
             border-radius: 999px;
             transition: background 0.3s ease;
         }}
 
-        .footer-links {{
-            margin-top: 3vh;
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 1.6vh;
+        [data-testid="stAlert"] {{
+            border-radius: 1vh !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            backdrop-filter: blur(8px) !important;
         }}
 
-        .footer-links a {{
-            color: #818cf8;
-            text-decoration: none;
-            font-weight: 600;
+        [data-testid="stAlert"] * {{ color: #f8fafc !important; }}
+
+        [data-testid="stAlert"][kind="error"]   {{ background: var(--error-bg) !important; }}
+        [data-testid="stAlert"][kind="success"] {{ background: var(--success-bg) !important; }}
+
+        #MainMenu, footer, header {{ visibility: hidden; }}
+        div.stTextInput {{ margin-bottom: -0.5vh !important; }}
+
+        .radio-inline div[data-testid="stRadio"] > div {{
+            flex-direction: row !important;
+            gap: 1.5vw;
         }}
 
-        .terms-text {{
-            color: var(--text-muted);
-            font-size: 1.3vh;
-            margin-top: 1.5vh;
-            text-align: center;
-        }}
-
-        .terms-text a {{
-            color: #818cf8;
-            text-decoration: none;
+        .radio-inline div[data-testid="stRadio"] label span {{
+            color: var(--text-main) !important;
+            font-size: 1.5vh !important;
         }}
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-    # ── 3. Layout ──────────────────────────────────────────────────────────────
-    left, mid, right = st.columns([1, 4, 1])
+    # ── Layout ─────────────────────────────────────────────────────────────────
+    _, mid, _ = st.columns([1, 5, 1])
 
     with mid:
         with st.form("register_form", clear_on_submit=False):
-            st.markdown(
-                """
-                <div class="register-header">
-                    <h1>StreamVortex</h1>
-                    <p>Crea tu cuenta y empieza a explorar</p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
 
-            col_a, col_b = st.columns(2)
-            with col_a:
-                full_name = st.text_input("Nombre completo", placeholder="Ada Lovelace")
-            with col_b:
-                username = st.text_input("Nombre de usuario", placeholder="@ada_stream")
-
-            email = st.text_input("Correo electrónico", placeholder="ada@ejemplo.com")
-
-            col_p1, col_p2 = st.columns(2)
-            with col_p1:
-                password = st.text_input(
-                    "Contraseña", type="password", placeholder="••••••••"
-                )
-            with col_p2:
-                confirm_password = st.text_input(
-                    "Confirmar contraseña", type="password", placeholder="••••••••"
-                )
-
-            strength, strength_label, bar_colors = _password_strength(password)
-            if strength_label:  # Solo mostrar barra si hay texto
+            # Header con logo
+            if logo_str:
                 st.markdown(
                     f"""
-                    <div>
-                        <div class="strength-bar-container">
-                            <div class="strength-bar" style="background:{bar_colors[0]};"></div>
-                            <div class="strength-bar" style="background:{bar_colors[1]};"></div>
-                            <div class="strength-bar" style="background:{bar_colors[2]};"></div>
-                            <div class="strength-bar" style="background:{bar_colors[3]};"></div>
-                        </div>
-                        <span style="color:{bar_colors[strength-1] if strength else '#334155'};font-size:1.3vh;">
-                            {strength_label}
-                        </span>
+                    <div style="text-align:center;margin-bottom:2.5vh;">
+                        <img src="data:image/png;base64,{logo_str}"
+                             alt="StreamVortex"
+                             style="max-width:110px;width:27.5%;height:auto;" />
                     </div>
+                    <p style="color:#94a3b8;font-size:1.7vh;text-align:center;margin-bottom:3vh;">
+                        Crea tu cuenta y empieza a explorar
+                    </p>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    """
+                    <div style="text-align:center;margin-bottom:2.5vh;">
+                        <h2 style="color:#f8fafc;margin:0;">StreamVortex</h2>
+                    </div>
+                    <p style="color:#94a3b8;font-size:1.7vh;text-align:center;margin-bottom:3vh;">
+                        Crea tu cuenta y empieza a explorar
+                    </p>
                     """,
                     unsafe_allow_html=True,
                 )
 
+            # ── SECTION: Cuenta ──────────────────────────────────────────────
+            st.markdown('<div class="section-label">Datos de cuenta</div>', unsafe_allow_html=True)
+
+            col_a, col_b = st.columns(2)
+            with col_a:
+                username = st.text_input("Nombre de usuario", placeholder="ada_stream")
+            with col_b:
+                email = st.text_input("Correo electrónico", placeholder="ada@ejemplo.com")
+
+            col_p1, col_p2 = st.columns(2)
+            with col_p1:
+                password = st.text_input("Contraseña", type="password", placeholder="••••••••")
+            with col_p2:
+                confirm_password = st.text_input("Confirmar contraseña", type="password", placeholder="••••••••")
+
+            strength, strength_label, bar_colors = _password_strength(password)
+            if strength_label:
+                st.markdown(
+                    f"""
+                    <div class="strength-wrap">
+                        {''.join(f'<div class="sbar" style="background:{c};"></div>' for c in bar_colors)}
+                    </div>
+                    <span style="color:{bar_colors[strength-1]};font-size:1.25vh;font-family:Outfit,sans-serif;">
+                        Contraseña {strength_label}
+                    </span>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+            # ── SECTION: Perfil ──────────────────────────────────────────────
+            st.markdown('<div class="section-label">Perfil personal</div>', unsafe_allow_html=True)
+
+            col_g, col_d = st.columns([1, 1])
+            with col_g:
+                gender = st.radio(
+                    "Género",
+                    options=["Hombre", "Mujer", "Otro"],
+                    horizontal=True,
+                )
+            with col_d:
+                birth_date = st.date_input(
+                    "Fecha de nacimiento",
+                    value=date(1995, 1, 1),
+                    min_value=date(1920, 1, 1),
+                    max_value=date.today().replace(year=date.today().year - 13),
+                    format="DD/MM/YYYY",
+                )
+
+            # ── SECTION: Géneros ─────────────────────────────────────────────
             st.markdown(
-                """
-                <p class="terms-text">
-                    Al crear una cuenta aceptas los
-                    <a href="#">Términos de Servicio</a> y la
-                    <a href="#">Política de Privacidad</a> de StreamVortex.
-                </p>
-                """,
+                '<div class="section-label">Géneros favoritos <span style="font-size:1.1vh;color:#64748b;text-transform:none;letter-spacing:0;">(mín. 1)</span></div>',
                 unsafe_allow_html=True,
             )
 
-            submitted = st.form_submit_button("Crear mi cuenta", use_container_width=True)
+            favorite_genres = st.multiselect(
+                "Selecciona tus géneros",
+                options=GENRES,
+                placeholder="Elige al menos un género...",
+                label_visibility="collapsed",
+            )
 
+            submitted = st.form_submit_button("Crear mi cuenta →", use_container_width=True)
+
+        # ── Validation & Save ──────────────────────────────────────────────────
         if submitted:
             errors = []
-            if not full_name.strip():
-                errors.append("El nombre completo es obligatorio.")
+
             if not username.strip():
                 errors.append("El nombre de usuario es obligatorio.")
+            elif not re.match(r"^[a-zA-Z0-9_\.]{3,30}$", username.strip()):
+                errors.append("El usuario solo puede tener letras, números, puntos y guiones bajos (3-30 caracteres).")
+
             if not _valid_email(email):
                 errors.append("Introduce un correo electrónico válido.")
+
             if len(password) < 6:
                 errors.append("La contraseña debe tener al menos 6 caracteres.")
             if password != confirm_password:
                 errors.append("Las contraseñas no coinciden.")
 
+            if not favorite_genres:
+                errors.append("Selecciona al menos un género favorito.")
+
+            today = date.today()
+            age = today.year - birth_date.year - (
+                (today.month, today.day) < (birth_date.month, birth_date.day)
+            )
+            if age < 13:
+                errors.append("Debes tener al menos 13 años para registrarte.")
+
+            if not errors:
+                taken_user, taken_email = _username_or_email_exists(username, email)
+                if taken_user:
+                    errors.append("Ese nombre de usuario ya está en uso.")
+                if taken_email:
+                    errors.append("Ese correo electrónico ya está registrado.")
+
             if errors:
                 for err in errors:
                     st.error(err)
             else:
-                if "users" not in st.session_state:
-                    st.session_state.users = {}
-
-                st.session_state.users[username.strip()] = {
+                new_user = {
+                    "user_id": str(_next_user_id()),
+                    "username": username.strip(),
+                    "email": email.strip().lower(),
                     "password": password,
-                    "email": email,
-                    "full_name": full_name,
+                    "gender": gender,
+                    "age": age,
+                    "favorite_genres": "|".join(favorite_genres),
+                    "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
                 }
 
-                st.success(f"¡Cuenta creada con éxito! Bienvenido/a, {full_name.split()[0]}. 🎉")
-                st.balloons()
+                if _save_user(new_user):
+                    st.success(f"¡Cuenta creada con éxito! Bienvenido/a, {username.strip()}.")
+                    st.balloons()
 
-                import time
-                time.sleep(1.5)
+                    import time
+                    time.sleep(1.5)
 
-                st.session_state.page = "login"
-                st.rerun()
+                    st.query_params["page"] = "login"
+                    st.rerun()
+                else:
+                    st.error("No se pudo guardar el usuario. Verifica los permisos del fichero CSV.")
 
-
-        if st.button("Volver a inicio de sesión", use_container_width=True):
-            st.session_state.page = "login"
+        if st.button("← Volver a inicio de sesión", use_container_width=True):
+            st.query_params["page"] = "login"
             st.rerun()
 
     st.markdown(
         """
-        <div style="position:fixed;bottom:3vh;width:100%;text-align:center;
-                    color:#94a3b8;font-size:1.4vh;opacity:0.7;">
+        <div style="position:fixed;bottom:2.5vh;width:100%;text-align:center;
+                    color:#475569;font-size:1.35vh;font-family:'Outfit',sans-serif;">
             © 2026 StreamVortex Platform. Todos los derechos reservados.
         </div>
         """,
         unsafe_allow_html=True,
     )
-
-
-def _valid_email(email: str) -> bool:
-    pattern = r"^[\w\.\+\-]+@[\w\-]+\.[a-zA-Z]{2,}$"
-    return bool(re.match(pattern, email.strip()))
-
-
-def _password_strength(password: str):
-    """
-    Devuelve (nivel:1-4, etiqueta, lista_colores_4_barras).
-    Nivel 0 = vacío.
-    """
-    EMPTY = "#1e293b"
-    RED = "#ef4444"
-    ORANGE = "#f97316"
-    YELLOW = "#eab308"
-    GREEN = "#22c55e"
-
-    if not password:
-        return 0, "", [EMPTY, EMPTY, EMPTY, EMPTY]
-
-    score = 0
-    if len(password) >= 8:
-        score += 1
-    if re.search(r"[A-Z]", password):
-        score += 1
-    if re.search(r"[0-9]", password):
-        score += 1
-    if re.search(r"[^A-Za-z0-9]", password):
-        score += 1
-
-    level = max(1, score)
-
-    palettes = {
-        1: ("Débil", [RED, EMPTY, EMPTY, EMPTY]),
-        2: ("Regular", [ORANGE, ORANGE, EMPTY, EMPTY]),
-        3: ("Buena", [YELLOW, YELLOW, YELLOW, EMPTY]),
-        4: ("Fuerte", [GREEN, GREEN, GREEN, GREEN]),
-    }
-    label, colors = palettes[level]
-    return level, label, colors

@@ -1,0 +1,16 @@
+user_id,username,email,password,gender,age,favorite_genres,created_at
+1,user1,user1@example.com,pass1,other,65,Music|War|Animation,2025-11-24 20:42:47
+2,user2,user2@example.com,pass2,female,31,Crime|Romance|Action|War,2025-08-10 20:42:47
+3,user3,user3@example.com,pass3,male,49,Crime|Documentary|Music|TV Movie,2025-08-21 20:42:47
+4,user4,user4@example.com,pass4,male,49,Comedy,2025-05-05 20:42:47
+5,user5,user5@example.com,pass5,female,59,Adventure|Horror,2026-03-07 20:42:47
+6,user6,user6@example.com,pass6,female,57,Adventure|Documentary|Animation|Fantasy,2025-11-04 20:42:47
+7,user7,user7@example.com,pass7,female,59,Horror|War,2025-11-16 20:42:47
+8,user8,user8@example.com,pass8,male,64,Thriller|Adventure|Action|Science Fiction,2025-04-17 20:42:47
+9,user9,user9@example.com,pass9,other,69,Romance,2025-10-20 20:42:47
+10,user10,user10@example.com,pass10,male,18,Drama|Family|History,2025-04-06 20:42:47
+11,Paco63,paco63@gmail.com,123456,Female,31,Drama,2026-04-08 17:36:47
+12,Paco69,paco69@gmail.com,123456,Hombre,0,Crime|Documentary|Action|Drama|Family,2026-04-19 18:22:45
+13,Paco697,paco697@gmail.com,123456,Hombre,31,Thriller|Adventure|Action|Romance,2026-04-19 18:25:35
+14,XiaoXiao,xiao@gmail.com,123456,Mujer,23,Animation,2026-04-22 17:26:38
+15,JordiVidal,jordividal@gmail.com,123456,Hombre,31,Action|Science Fiction,2026-04-23 17:15:01

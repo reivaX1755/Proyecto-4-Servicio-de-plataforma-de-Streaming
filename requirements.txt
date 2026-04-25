@@ -1,4 +1,7 @@
-streamlit
-scikit-surprise
-pandas
+matplotlib
 numpy
+pandas
+scikit-learn
+scikit-surprise
+sentence-transformers
+streamlit

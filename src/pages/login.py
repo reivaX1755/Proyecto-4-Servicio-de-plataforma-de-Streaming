@@ -63,15 +63,23 @@ def _authenticate_user(identifier: str, password: str):
 
 
 def show_login(go_to_dashboard):
-    # Si ya está logueado, va directo al dashboard
+
+    # Si ya está logueado, ir directo al dashboard
     if st.session_state.get("logged_in"):
-        go_to_dashboard(user=st.session_state.get("user"))
+        st.query_params["page"] = "dashboard"
+        st.rerun()
         return
 
     bg_img_path = os.path.join("assets", "fondo-login.png")
     bin_str = ""
     try:
         bin_str = get_base64_of_bin_file(bg_img_path)
+    except Exception:
+        pass
+
+    logo_str = ""
+    try:
+        logo_str = get_base64_of_bin_file(os.path.join("assets", "logo-streaming.png"))
     except Exception:
         pass
 
@@ -108,15 +116,6 @@ def show_login(go_to_dashboard):
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-        }}
-
-        .login-header h1 {{
-            font-size: 4.5vh;
-            font-weight: 700;
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 1vh;
         }}
 
         .login-header p {{
@@ -184,7 +183,6 @@ def show_login(go_to_dashboard):
             font-size: 1.6vh;
         }}
 
-        /* ALERTAS MÁS VISIBLES */
         [data-testid="stAlert"] {{
             border-radius: 1.1vh !important;
             border: 1px solid rgba(255,255,255,0.12) !important;
@@ -213,15 +211,29 @@ def show_login(go_to_dashboard):
 
     with mid:
         with st.form("login_form", clear_on_submit=False):
-            st.markdown(
-                """
-                <div class="login-header">
-                    <h1>StreamVortex</h1>
-                    <p>Tu universo de streaming ilimitado</p>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+
+            if logo_str:
+                st.markdown(
+                    f"""
+                    <div class="login-header" style="text-align:center;margin-bottom:2.5vh;">
+                        <img src="data:image/png;base64,{logo_str}"
+                             alt="StreamVortex"
+                             style="max-width:110px;width:27.5%;height:auto;" />
+                        <p>Tu universo de streaming ilimitado</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            else:
+                st.markdown(
+                    """
+                    <div class="login-header" style="text-align:center;margin-bottom:2.5vh;">
+                        <h1>StreamVortex</h1>
+                        <p>Tu universo de streaming ilimitado</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
             username_or_email = st.text_input("Usuario o Email", placeholder="usuario@ejemplo.com")
             password = st.text_input("Contraseña", type="password", placeholder="••••••••")
@@ -235,29 +247,26 @@ def show_login(go_to_dashboard):
                 matched_user = _authenticate_user(username_or_email, password)
 
                 if matched_user:
+
                     display_name = (
                         matched_user.get("username")
                         or matched_user.get("email")
                         or username_or_email.strip()
                     )
 
-                    # Guardar estado de login
                     st.session_state.logged_user = matched_user
                     st.session_state.user = display_name
                     st.session_state.logged_in = True
-                    st.session_state.page = 'dashboard'
 
-                    # Mostrar feedback visual antes de redirigir
                     st.success(f"¡Bienvenido, {display_name}!")
-                    st.balloons()
                     time.sleep(0.5)
 
-                    # Redirigir al dashboard
+                    st.query_params["page"] = "dashboard"
                     st.rerun()
+
                 else:
                     st.error("Usuario/email o contraseña incorrectos.")
 
-        # Footer texto plano
         st.markdown(
             """
             <div class="footer-links">
@@ -268,10 +277,9 @@ def show_login(go_to_dashboard):
         )
 
         if st.button("Crear una nueva cuenta", type="secondary", use_container_width=True):
-            st.session_state.page = 'register'
+            st.query_params["page"] = "register"
             st.rerun()
 
-    # Footer fijo
     st.markdown(
         """
         <div style="position: fixed; bottom: 3vh; width: 100%; text-align: center; color: #94a3b8; font-size: 1.4vh; opacity: 0.7;">

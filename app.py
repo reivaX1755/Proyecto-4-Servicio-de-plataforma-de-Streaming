@@ -1,50 +1,65 @@
 # app.py
-"""
-Controlador principal para la app de streaming.
-Gestiona la navegación entre páginas separadas: login, register y dashboard.
-"""
-
 import streamlit as st
+
 from src.pages.login import show_login
 from src.pages.register import show_register
 from src.pages.dashboard import show_dashboard
+from src.pages.moviecard import show_movie_detail
+from src.pages.audit import show_audit
 
-# --- Inicialización del estado de la sesión -------------------------------------------------
+
 def init_state():
-    if 'page' not in st.session_state:
-        st.session_state.page = 'login'
-    if 'users' not in st.session_state:
+    if "users" not in st.session_state:
         st.session_state.users = {}
-    if 'logged_in' not in st.session_state:
+    if "logged_in" not in st.session_state:
         st.session_state.logged_in = False
-    if 'current_user' not in st.session_state:
+    if "current_user" not in st.session_state:
         st.session_state.current_user = None
+    if "selected_tmdb_id" not in st.session_state:
+        st.session_state.selected_tmdb_id = None
 
-# --- Navegación simple ---------------------------------------------------------------------
+
 def go_to_dashboard(user=None):
     st.session_state.logged_in = True
     st.session_state.current_user = user
-    st.session_state.page = 'dashboard'
+    st.query_params["page"] = "dashboard"
+    st.rerun()
+
 
 def logout():
     st.session_state.logged_in = False
     st.session_state.current_user = None
-    st.session_state.page = 'login'
+    st.session_state.selected_tmdb_id = None
+    st.query_params["page"] = "login"
+    st.rerun()
 
-# --- Main ----------------------------------------------------------------------------------
 
 def main():
-    st.set_page_config(page_title="Streaming - Demo", layout="wide")
+    st.set_page_config(
+        page_title="Streaming - Demo",
+        layout="wide",
+        page_icon="assets/logo-streaming.png",
+    )
+
     init_state()
 
-    if st.session_state.page == 'login':
+    page = st.query_params.get("page", "login")
+    if isinstance(page, list):
+        page = page[0] if page else "login"
+
+    if page == "login":
         show_login(go_to_dashboard)
-    elif st.session_state.page == 'register':
+    elif page == "register":
         show_register()
-    elif st.session_state.page == 'dashboard':
+    elif page == "dashboard":
         show_dashboard(logout)
+    elif page == "moviecard":
+        show_movie_detail()
+    elif page == "audit":
+        show_audit()
     else:
         show_login(go_to_dashboard)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

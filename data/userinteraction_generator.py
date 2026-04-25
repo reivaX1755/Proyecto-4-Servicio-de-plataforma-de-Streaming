@@ -2,9 +2,7 @@ import pandas as pd
 import random
 from datetime import datetime, timedelta
 
-# -----------------------------
 # CONFIG
-# -----------------------------
 USERS = list(range(1, 11))  # usuarios 1–10
 MOVIES_CSV = "../movies/tmdb_dataset_full.csv"
 OUTPUT_FILE = "interactions.csv"
@@ -12,12 +10,10 @@ OUTPUT_FILE = "interactions.csv"
 INTERACTIONS_PER_USER = (10, 30)  # min, max por usuario
 
 # Ratings posibles (Letterboxd style)
-RATINGS = [x * 0.5 for x in range(0, 11)]  # 0 → 5 en pasos de 0.5
+RATINGS = [x * 0.5 for x in range(0, 11)]  # 0  5 en pasos de 0.5
 
 
-# -----------------------------
 # FUNCIONES
-# -----------------------------
 def random_date():
     now = datetime.now()
     days_ago = random.randint(0, 365)
@@ -37,9 +33,7 @@ def weighted_rating(match=True):
         )[0]
 
 
-# -----------------------------
 # LOAD MOVIES (CLAVE)
-# -----------------------------
 print("Cargando dataset de películas...")
 
 movies_df = pd.read_csv(
@@ -58,9 +52,7 @@ movie_ids = movies_df["tmdbId"].tolist()
 print(f"Películas válidas cargadas: {len(movie_ids)}")
 
 
-# -----------------------------
 # GENERAR INTERACCIONES
-# -----------------------------
 interactions = []
 interaction_id = 1
 
@@ -88,9 +80,7 @@ for user_id in USERS:
         interaction_id += 1
 
 
-# -----------------------------
 # GUARDAR CSV
-# -----------------------------
 df = pd.DataFrame(
     interactions,
     columns=[
