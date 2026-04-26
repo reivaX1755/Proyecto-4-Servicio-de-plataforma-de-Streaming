@@ -22,7 +22,7 @@ El sistema incluye:
 
 ## Requisitos previos
 
-- Python 3.8 o superior.
+- Python 3.14 o superior.
 - Conexión a Internet para descargar los datasets.
 - Recomendado usar un entorno virtual (venv, conda, etc.).
 
