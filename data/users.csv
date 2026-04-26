@@ -14,3 +14,6 @@ user_id,username,email,password,gender,age,favorite_genres,created_at
 13,Paco697,paco697@gmail.com,123456,Hombre,31,Thriller|Adventure|Action|Romance,2026-04-19 18:25:35
 14,XiaoXiao,xiao@gmail.com,123456,Mujer,23,Animation,2026-04-22 17:26:38
 15,JordiVidal,jordividal@gmail.com,123456,Hombre,31,Action|Science Fiction,2026-04-23 17:15:01
+16,test01,test01@gmail.com,123456,Mujer,28,Crime|Romance|Drama,2026-04-26 11:49:42
+17,Drama_User,drama_user@gmail.com,123456,Mujer,31,Drama,2026-04-26 12:29:05
+18,Animation_User,animation_user@gmail.com,123456,Mujer,27,Animation,2026-04-26 12:32:02
