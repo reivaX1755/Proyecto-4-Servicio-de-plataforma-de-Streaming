@@ -465,7 +465,7 @@ def show_register():
                 else:
                     st.error("No se pudo guardar el usuario. Verifica los permisos del fichero CSV.")
 
-        if st.button("← Volver a inicio de sesión", use_container_width=True):
+        if st.button("Volver a inicio de sesión", use_container_width=True):
             st.query_params["page"] = "login"
             st.rerun()
 
