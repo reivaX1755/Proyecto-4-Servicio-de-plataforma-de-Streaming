@@ -73,3 +73,4 @@ python streamlit run app.py
 - Asegúrate de que los archivos `tmdb.embeddings.parquet` y `tmdb_dataset_full.csv` estén presentes en las rutas correctas antes de ejecutar la aplicación.
 - Si agregas nuevos datos o actualizas los embeddings, revisa los scripts dentro de `assets/` para generar o procesar los archivos correctamente.
 
+## Videos al final de la documentación
