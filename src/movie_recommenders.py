@@ -37,9 +37,9 @@ class RecommenderConfig:
     meta_name: str = "movie_meta_v3_emb.parquet"
 
     # Embedding weights
-    embedding_candidate_weight: float = 0.30
-    embedding_balanced_weight: float = 0.15
-    embedding_popular_weight: float = 0.05
+    embedding_candidate_weight: float = 0.40
+    embedding_balanced_weight: float = 0.35
+    embedding_popular_weight: float = 0.20
 
     # How strongly negative feedback repels the profile embedding.
     negative_embedding_weight: float = 0.85
