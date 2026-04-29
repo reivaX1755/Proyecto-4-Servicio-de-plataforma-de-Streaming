@@ -260,7 +260,8 @@ def show_login(go_to_dashboard):
 
                     st.success(f"¡Bienvenido, {display_name}!")
                     time.sleep(0.5)
-
+                    st.session_state.login_time = time.time()          # ← ya lo tenías
+                    st.session_state.pop("recommender_ready_time", None)
                     st.query_params["page"] = "dashboard"
                     st.rerun()
 

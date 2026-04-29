@@ -19,3 +19,7 @@ user_id,username,email,password,gender,age,favorite_genres,created_at
 18,Animation_User,animation_user@gmail.com,123456,Mujer,27,Animation,2026-04-26 12:32:02
 19,test07,test07@gmail.com,123456,Hombre,31,Comedy,2026-04-26 17:09:49
 20,test08,test08@gmail.com,123456,Hombre,31,Documentary,2026-04-26 17:11:26
+21,comedy_user,comedy@gmail.com,123456,Hombre,26,Comedy,2026-04-28 20:33:16
+22,animetionUser,animation@gmail.com,123456,Mujer,31,Animation,2026-04-28 21:18:06
+23,AnimationUser33,animation33@gmail.com,123456,Mujer,31,Animation,2026-04-28 21:22:09
+24,testtest,testest@gmail.com,123456,Hombre,31,Animation|Horror,2026-04-28 21:39:15

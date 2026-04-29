@@ -23,6 +23,7 @@ import ast
 import base64
 from copy import deepcopy
 from pathlib import Path
+import time
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -1148,6 +1149,32 @@ def show_audit() -> None:
         profile = rec.build_user_profile(user_id)
         _ = normalize_movie_df(rec.recommend_with_explanations(user_id=user_id, n=12))
         _ = normalize_movie_df(rec.recommend_popular_with_explanations(user_id=user_id, n=12))
+
+        if "recommender_ready_time" not in st.session_state:
+            st.session_state.recommender_ready_time = time.time()
+
+    login_time  = st.session_state.get("login_time")
+    ready_time  = st.session_state.get("recommender_ready_time")
+
+    if login_time and ready_time:
+        elapsed = ready_time - login_time
+        elapsed_str = f"{elapsed:.1f} s" if elapsed < 60 else f"{int(elapsed)//60}m {int(elapsed)%60}s"
+        st.markdown(
+            f"""
+            <div style="display:inline-flex;align-items:center;gap:10px;
+                        background:#0f172a;border:1px solid #1e293b;
+                        border-radius:12px;padding:10px 20px;margin-bottom:16px;">
+              <div>
+                <div style="color:#64748b;font-size:11px;font-weight:700;
+                            text-transform:uppercase;letter-spacing:.08em;">
+                  Login → recomendador listo
+                </div>
+                <div style="color:#fde68a;font-size:22px;font-weight:900;">{elapsed_str}</div>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     with tabs[0]:
         _render_user_profile(rec, user_id)

@@ -6,7 +6,7 @@ import pandas as pd
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-# ------------------- CONFIG -------------------
+#  CONFIG 
 API_KEY = "f8b713317cafa651474dc1aa3360cea2"
 OUTPUT_CSV = "tmdb_dataset_full.csv"
 CHECKPOINT_FILE = "tmdb_last_id.txt"
@@ -14,10 +14,10 @@ PAUSE_SEC = 0.3
 TIMEOUT = 10
 SAVE_EVERY = 100
 
-# ------------------- LOGGING -------------------
+#  LOGGING 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 
-# ------------------- SESSION CON RETRIES -------------------
+#  SESSION CON RETRIES 
 session = requests.Session()
 retries = Retry(
     total=5,
@@ -28,7 +28,7 @@ retries = Retry(
 adapter = HTTPAdapter(max_retries=retries)
 session.mount("https://", adapter)
 
-# ------------------- FUNCIONES -------------------
+#  FUNCIONES 
 def fetch_movie(tmdb_id):
     url = f"https://api.themoviedb.org/3/movie/{tmdb_id}"
     params = {"api_key": API_KEY, "language": "en-US"}
@@ -70,7 +70,7 @@ def save_last_id(last_id):
     with open(CHECKPOINT_FILE, "w") as f:
         f.write(str(last_id))
 
-# ------------------- MAIN -------------------
+#  MAIN 
 
 # Cargar registros ya guardados
 if os.path.exists(OUTPUT_CSV):
